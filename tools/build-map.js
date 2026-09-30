@@ -192,8 +192,9 @@ const elen = e => { let L = 0; for (let i = 1; i < e.pts.length; i++) L += hypot
   gNodes.forEach((n, i) => g.query(n.x - MERGE_D, n.y - MERGE_D, n.x + MERGE_D, n.y + MERGE_D, it => {
     if (it.i !== i && hypot(gNodes[it.i].x - n.x, gNodes[it.i].y - n.y) < MERGE_D) par[f(it.i)] = f(i);
   }));
-  // collapse short edges between junctions too
-  for (const e of edges) if (elen(e) < MERGE_D) par[f(e.a)] = f(e.b);
+  // collapse short edges between junctions (clusters of nodes become one junction),
+  // except on roundabouts whose ring segments are legitimately short
+  for (const e of edges) if (elen(e) < (e.rb ? MERGE_D : 11)) par[f(e.a)] = f(e.b);
   const groups = new Map();
   gNodes.forEach((n, i) => { const r = f(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(i); });
   const remap = new Array(gNodes.length), nn = [];
