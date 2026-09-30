@@ -1,0 +1,45 @@
+{
+  "_comment": "Configuration for tools/build-map.js. Coordinates are WGS84. Radii in real-world metres.",
+  "origin": { "lat": 50.27, "lon": 15.84 },
+  "bbox": { "s": 50.160, "w": 15.715, "n": 50.372, "e": 15.955 },
+
+  "globalScale": 0.36,
+  "ruralCompression": 3.5,
+  "urbanHalfWidth": 5500,
+  "axis": { "from": { "lat": 50.2095, "lon": 15.8325 }, "to": { "lat": 50.3560, "lon": 15.9200 } },
+
+  "towns": [
+    { "name": "Hradec Králové", "lat": 50.2190, "lon": 15.8260, "r": 3800, "compress": false },
+    { "name": "Lochenice", "lat": 50.2790, "lon": 15.8500, "r": 450, "compress": true },
+    { "name": "Smiřice", "lat": 50.3000, "lon": 15.8690, "r": 900, "compress": false },
+    { "name": "Černožice", "lat": 50.3200, "lon": 15.8720, "r": 700, "compress": false },
+    { "name": "Jaroměř", "lat": 50.3530, "lon": 15.9150, "r": 1600, "compress": false }
+  ],
+
+  "styles": [
+    { "style": "historic", "lat": 50.2095, "lon": 15.8345, "r": 430 },
+    { "style": "historic", "lat": 50.3560, "lon": 15.9200, "r": 260 },
+    { "style": "estate", "lat": 50.2000, "lon": 15.8560, "r": 650 },
+    { "style": "estate", "lat": 50.2235, "lon": 15.8520, "r": 520 },
+    { "style": "estate", "lat": 50.2235, "lon": 15.8330, "r": 380 },
+    { "style": "industrial", "lat": 50.2200, "lon": 15.8690, "r": 480 },
+    { "style": "industrial", "lat": 50.3500, "lon": 15.9380, "r": 420 },
+    { "style": "industrial", "lat": 50.2040, "lon": 15.7880, "r": 320 },
+    { "style": "village", "lat": 50.2385, "lon": 15.7960, "r": 520 },
+    { "style": "village", "lat": 50.2530, "lon": 15.8340, "r": 560 },
+    { "style": "village", "lat": 50.2790, "lon": 15.8500, "r": 420 },
+    { "style": "village", "lat": 50.3000, "lon": 15.8700, "r": 650 },
+    { "style": "village", "lat": 50.3200, "lon": 15.8720, "r": 520 }
+  ],
+
+  "mainHospital": { "name": "Fakultní nemocnice Hradec Králové", "match": "Fakultní nemocnice", "erLat": 50.2036, "erLon": 15.8088 },
+  "mainBase": { "match": "", "lat": 50.1962, "lon": 15.8436 },
+  "landmarks": [
+    { "kind": "tower", "match": "Bílá věž", "lat": 50.2099, "lon": 15.8322, "h": 46 }
+  ],
+
+  "motorwayOffset": 5.5,
+  "keepHighways": ["motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link",
+    "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified", "residential", "living_street"],
+  "seed": 155
+}
