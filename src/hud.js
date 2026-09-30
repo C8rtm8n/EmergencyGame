@@ -161,7 +161,7 @@
     var sp = Z.render.toScreen(tg.x, tg.y), x = sp[0], y = sp[1], m = 60 * s;
     if (x > m && x < W - m && y > m && y < H0 - m) return;
     var cx = W / 2, cy = H0 / 2, dx = x - cx, dy = y - cy, k = Math.min((W / 2 - m) / Math.abs(dx || 1e-6), (H0 / 2 - m) / Math.abs(dy || 1e-6));
-    var ax = cx + dx * k, ay = cy + dy * k, ang = Math.atan2(dy, dx);
+    var ax = cx + dx * k, ay = Math.max(cy + dy * k, 130 * s), ang = Math.atan2(dy, dx); // keep clear of the dispatch card
     g.save(); g.translate(ax, ay); g.rotate(ang);
     g.fillStyle = tg.color || '#ff3b3b'; g.strokeStyle = '#fff'; g.lineWidth = 3 * s;
     g.beginPath(); g.moveTo(24 * s, 0); g.lineTo(-12 * s, -16 * s); g.lineTo(-4 * s, 0); g.lineTo(-12 * s, 16 * s); g.closePath(); g.fill(); g.stroke();

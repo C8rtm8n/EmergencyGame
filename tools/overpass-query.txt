@@ -1,0 +1,31 @@
+/*
+  Overpass QL query for the game area: Hradec Králové (incl. Kukleny, Nový Hradec,
+  Moravské Předměstí, Plotiště, Předměřice), D11 to Jaroměř, Smiřice, Černožice,
+  Jaroměř and the roads between them.
+
+  Run it at https://overpass-turbo.eu (Export -> "raw OSM data" as JSON) or with:
+    curl -o data/overpass.json --data-urlencode data@tools/overpass-query.txt https://overpass-api.de/api/interpreter
+  then:
+    node tools/build-map.js           (picks up data/overpass.json automatically)
+
+  Map data © OpenStreetMap contributors, ODbL.
+*/
+[out:json][timeout:180];
+(
+  way["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street)$"](50.160,15.715,50.372,15.955);
+  way["waterway"~"^(river|canal|stream|riverbank)$"](50.160,15.715,50.372,15.955);
+  way["natural"~"^(water|wood|grassland|scrub|wetland)$"](50.160,15.715,50.372,15.955);
+  relation["natural"="water"](50.160,15.715,50.372,15.955);
+  way["landuse"~"^(forest|farmland|meadow|grass|orchard|residential|industrial|commercial|retail|cemetery|allotments|farmyard|reservoir|basin|recreation_ground|railway)$"](50.160,15.715,50.372,15.955);
+  relation["landuse"~"^(forest|farmland|meadow|residential|industrial)$"](50.160,15.715,50.372,15.955);
+  way["leisure"~"^(park|garden|pitch|stadium|sports_centre)$"](50.160,15.715,50.372,15.955);
+  way["railway"="rail"](50.160,15.715,50.372,15.955);
+  nwr["amenity"="hospital"](50.160,15.715,50.372,15.955);
+  nwr["emergency"="ambulance_station"](50.160,15.715,50.372,15.955);
+  nwr["amenity"="place_of_worship"](50.160,15.715,50.372,15.955);
+  node["highway"="traffic_signals"](50.160,15.715,50.372,15.955);
+  node["place"~"^(city|town|village|suburb|quarter|neighbourhood|hamlet)$"](50.160,15.715,50.372,15.955);
+  nwr["name"="Bílá věž"](50.160,15.715,50.372,15.955);
+);
+(._;>;);
+out body;

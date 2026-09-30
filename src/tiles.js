@@ -28,7 +28,9 @@
     draw: function (g, x0, y0, x1, y1, budget) {
       frameStamp++;
       var i0 = Math.floor(x0 / TM), i1 = Math.floor(x1 / TM), j0 = Math.floor(y0 / TM), j1 = Math.floor(y1 / TM);
-      var made = 0;
+      var made = 0, missing = 0;
+      for (var jj = j0; jj <= j1; jj++) for (var ii = i0; ii <= i1; ii++) if (!cache.has(ii * 100000 + jj)) missing++;
+      if (missing > 6) budget = Math.max(budget, 10);
       for (var j = j0; j <= j1; j++) for (var i = i0; i <= i1; i++) {
         var k = i * 100000 + j, t = cache.get(k);
         if (!t && made < budget) { t = render(i, j); cache.set(k, t); made++; }

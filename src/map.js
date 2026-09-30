@@ -109,7 +109,7 @@
     // ------------------------------------------------ street lamps (urban roads)
     M.lamps = []; M.lampGrid = new Grid(64);
     M.edges.forEach(function (e) {
-      if (!e.urban && e.cls > 1) return;
+      if (!e.urban) return;
       if (e.cls === 6 && Math.random() < 0.5) return;
       var step = e.cls <= 3 ? 28 : 36, side = 1, tmp = {};
       for (var s = e.clrA + 6; s < e.len - e.clrB - 4; s += step) {

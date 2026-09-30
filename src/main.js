@@ -68,8 +68,8 @@
     stage.style.left = Math.floor((vw - w) / 2) + 'px'; stage.style.top = Math.floor((vh - h) / 2) + 'px';
     // insets only matter where the stage touches the screen edge
     G.safe = { l: (vw - w) / 2 < G.safe.l ? G.safe.l : 0, r: (vw - w) / 2 < G.safe.r ? G.safe.r : 0, t: (vh - h) / 2 < G.safe.t ? G.safe.t : 0, b: (vh - h) / 2 < G.safe.b ? G.safe.b : 0 };
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var cw = Math.min(1920, Math.round(w * dpr)), ch = Math.round(cw * 9 / 16);
+    var dpr = Math.min(window.devicePixelRatio || 1, Z.input.isTouchDevice() ? 1.5 : 2) * (G.quality || 1);
+    var cw = Math.max(640, Math.min(1920, Math.round(w * dpr))), ch = Math.round(cw * 9 / 16);
     var s = cw / 1280;
     Z.render.resize(cw, ch, s);
     G.scale = s; G.cssScale = cw / w;
@@ -130,7 +130,9 @@
       Z.traffic.clear();
       G.demo = null;
       var base = M.mainBase.bay;
-      P.reset(base.x, base.y, base.h + (base.side > 0 ? 0 : 0));
+      // start in the kerbside lane next to the station, facing the legal direction
+      var tp = M.pointAt(base.e, base.s, {}), side = base.side || 1, lat = base.e.halfW - base.e.W / 2;
+      P.reset(tp.x - tp.ty * lat * side, tp.y + tp.tx * lat * side, base.h + (side > 0 ? 0 : Math.PI));
       G.cam.x = P.x; G.cam.y = P.y;
       G.shiftT = Z.CONFIG.shiftSeconds; G.extended = false;
       var starts = Z.CONFIG.shiftStarts; G.clock = starts[Z.save.shifts % starts.length];
@@ -185,6 +187,7 @@
     var dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts;
     if (dt <= 0) return;
     fps = fps * 0.95 + (1 / dt) * 0.05;
+    adaptQuality(dt);
     G.time += dt;
     Z.audio.update();
     var I = Z.input;
@@ -195,6 +198,18 @@
     var tOn = G.state === 'play';
     if (tOn !== G._touchOn) { G._touchOn = tOn; document.getElementById('touch').classList.toggle('on', tOn); }
     draw(dt);
+  }
+
+  // dynamic resolution: drop the canvas resolution when the device can't keep ~60 FPS
+  var qT = 0, qCalm = 0;
+  function adaptQuality(dt) {
+    if (G.state !== 'play') return;
+    qT += dt; qCalm += dt;
+    if (qT < 3) return;
+    qT = 0;
+    var q = G.quality || 1;
+    if (fps < 45 && q > 0.55) { G.quality = Math.max(0.55, q - 0.15); qCalm = 0; resize(); }
+    else if (fps > 58 && q < 1 && qCalm > 15) { G.quality = Math.min(1, q + 0.1); qCalm = 0; resize(); }
   }
 
   function updateAttract(dt) {
@@ -254,6 +269,7 @@
       cars: Z.traffic.cars, player: playing ? P : null, route: playing ? G.route : null, target: playing ? G.target : null,
       night: G.night(), time: G.time, dt: dt, shake: playing ? (P.shake || 0) : 0,
       tileBudget: G.time < 1 ? 60 : 3,
+      ahead: playing ? { x: Z.clamp(P.vx * 2.5, -140, 140), y: Z.clamp(P.vy * 2.5, -140, 140) } : null,
       bays: [{ x: M.mainHospital.bay.x, y: M.mainHospital.bay.y, h: M.mainHospital.bay.h, kind: 'er' }].concat(M.stations.map(function (s) { return { x: s.bay.x, y: s.bay.y, h: s.bay.h, kind: 'base' }; })),
     };
     Z.render.frame(st);

@@ -38,7 +38,7 @@
     },
     resize: function (w, h, s) {
       W = cv.width = w; H = cv.height = h; scale = s;
-      light.width = Math.ceil(w / 2); light.height = Math.ceil(h / 2);
+      light.width = Math.ceil(w / 3); light.height = Math.ceil(h / 3);
     },
     size: function () { return { W: W, H: H, scale: scale }; },
     toScreen: function (x, y) { return [(x - view.cx) * view.z + W / 2, (y - view.cy) * view.z + H / 2]; },
@@ -63,7 +63,8 @@
     var x0 = view.cx - hw, y0 = view.cy - hh, x1 = view.cx + hw, y1 = view.cy + hh;
     view.camH = 1100 / (z / scale);
     worldT();
-    Z.tiles.draw(g, x0, y0, x1, y1, st.tileBudget || 3);
+    var made = Z.tiles.draw(g, x0, y0, x1, y1, st.tileBudget || 3);
+    if (made < 2 && st.ahead) Z.tiles.prefetch(x0 + st.ahead.x, y0 + st.ahead.y, x1 + st.ahead.x, y1 + st.ahead.y, 1);
     // bays and markings on the road
     if (st.bays) st.bays.forEach(function (b) { drawBay(b, st.time); });
     if (st.route) drawRoute(st.route, st.time);
@@ -292,7 +293,7 @@
 
   // ------------------------------------------------------------ night
   function drawNight(st, vis, x0, y0, x1, y1) {
-    var n = st.night, lw = light.width, lh = light.height, s = view.z / 2;
+    var n = st.night, lw = light.width, lh = light.height, s = view.z * lw / W;
     lg.setTransform(1, 0, 0, 1, 0, 0);
     lg.globalCompositeOperation = 'source-over';
     lg.clearRect(0, 0, lw, lh);

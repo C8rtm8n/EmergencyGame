@@ -240,6 +240,7 @@
       c = cars[i]; addHash(c);
       if (c.mode === 0) { var k = c.e.i * 2 + (c.dir > 0 ? 0 : 1), l = byEdge.get(k); if (!l) byEdge.set(k, l = []); l.push(c); }
     }
+    feedJams(focus, em);
     var spawnN = Math.min(4, target - cars.length);
     for (i = 0; i < spawnN * 3 && spawnN > 0; i++) if (spawnOne(focus.x, focus.y, opts.initial ? 25 : 210, R)) spawnN--;
     // node approach double-buffering
@@ -262,6 +263,23 @@
     if ((time * 2 | 0) !== ((time - dt) * 2 | 0)) {
       for (i = 0; i < M.edges.length; i++) M.edges[i].jam *= 0.5;
       for (i = 0; i < cars.length; i++) if (cars[i].v < 1.5 && cars[i].mode === 0 && !cars[i].yielding) cars[i].e.jam += 0.5;
+    }
+  }
+
+  // Wrecks block lanes; keep a queue of stopped cars behind them (spawned out of sight)
+  // so crashes cause real congestion the player has to get through or route around.
+  function feedJams(focus, em) {
+    for (var i = 0; i < cars.length; i++) {
+      var w = cars[i]; if (!w.wreck || w.tag === 'demo') continue;
+      if (Math.hypot(w.x - focus.x, w.y - focus.y) > Z.CONFIG.trafficRadius) continue;
+      var list = byEdge.get(w.e.i * 2 + (w.dir > 0 ? 0 : 1)) || [], tail = w.s, n = 0;
+      for (var k = 0; k < list.length; k++) { var o = list[k]; if (o.s < w.s && o.s > w.s - 260) { n++; if (o.s < tail) tail = o.s; } }
+      if (n >= 18 || tail < M.clrStart(w.e, w.dir) + 12) continue;
+      var s = tail - Z.rand(7.5, 9.5);
+      M.travelPoint(w.e, w.dir, s, 0, tmp);
+      if (em && Math.hypot(tmp.x - em.x, tmp.y - em.y) < 150) continue;
+      var c = makeCar(w.e, w.dir, s, (Math.random() * w.e.lanes) | 0, { v: 0 });
+      addHash(c);
     }
   }
 

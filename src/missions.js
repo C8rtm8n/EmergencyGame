@@ -60,6 +60,7 @@
       var rec = S.score > Z.save.best; if (rec) Z.save.best = S.score;
       if (S.bestClean > Z.save.bestClean) Z.save.bestClean = Math.round(S.bestClean);
       if (S.mission && S.mission.wrecks) Z.traffic.removeWrecks('crash');
+      Z.traffic.removeWrecks('incident');
       Z.writeSave();
       return { score: S.score, saved: S.saved, bestClean: Math.round(S.bestClean), coins: coins, record: rec };
     },
@@ -87,6 +88,7 @@
         if (P.hp < P.maxHp) { P.hp = Math.min(P.maxHp, P.hp + 30 * dt); if (P.hp >= P.maxHp) Z.hud.toast('🔧 ' + Z.t('repaired'), '#8f8'); }
       }
     }
+    incidents(dt);
     var m = S.mission;
     S.canAct = false;
     if (!m) {
@@ -189,7 +191,11 @@
     m.dest = M.mainHospital;
     var spot = null, tmp = {};
     if (type === 'crash') {
-      spot = roadSpot(P.x, P.y, 500, 2600, function (e) { return e.cls === 0 && e.len > 140; });
+      var mws = M.edges.filter(function (e) {
+        if (e.cls !== 0 || e.len < 160) return false;
+        M.pointAt(e, e.len / 2, tmp); var d = Math.hypot(tmp.x - P.x, tmp.y - P.y); return d > 450 && d < 3000;
+      });
+      if (mws.length) { var me = Z.pick(mws); spot = { e: me, s: Z.rand(70, me.len - 60) }; }
       if (spot) {
         var e = spot.e, dir = 1, s = Z.clamp(spot.s, 60, e.len - 50);
         Z.traffic.removeWrecks('crash');
@@ -228,6 +234,23 @@
     Z.game.setTarget(m.x, m.y, m.def.icon, '#ff3b3b');
     Z.hud.dispatch(m);
     Z.audio.blip('dispatch');
+  }
+
+  // ---------------------------------------------------------------- random incidents (jams)
+  function incidents(dt) {
+    S.incT = (S.incT == null ? Z.rand(50, 80) : S.incT) - dt;
+    if (S.incLife != null) { S.incLife -= dt; if (S.incLife <= 0) { Z.traffic.removeWrecks('incident'); S.incLife = null; } }
+    if (S.incT > 0) return;
+    S.incT = Z.rand(80, 130);
+    var P = Z.player;
+    var spot = roadSpot(P.x, P.y, 350, 900, function (e) { return e.cls >= 2 && e.cls <= 4 && e.len > 90; });
+    if (!spot) return;
+    Z.traffic.removeWrecks('incident');
+    var dir = spot.e.oneway ? 1 : (Math.random() < 0.5 ? 1 : -1), s = Z.clamp(dir > 0 ? spot.s : spot.e.len - spot.s, 45, spot.e.len - 30);
+    Z.traffic.addWreck(spot.e, dir, s, spot.e.lanes - 1, 'incident');
+    if (spot.e.lanes === 1) Z.traffic.addWreck(spot.e, dir, s + 5, 0, 'incident').lat += 0.8;
+    S.incLife = 75;
+    Z.hud.toast('⚠️ 🚗💥🚗 ' + (Z.map.placeName(spot.x, spot.y) || ''), '#ffcc80');
   }
 
   // ---------------------------------------------------------------- red light (without siren)

@@ -70,7 +70,7 @@
       if (alat > 8) Z.missions && Z.missions.jolt((alat - 8) * 0.3 * dt, 'swerve');
       // surface: road / off-road / kerbs
       var rd = M.roadDist(P.x, P.y), was = P.onRoad;
-      P.onRoad = rd < 0.4;
+      P.onRoad = rd < 0.9; // small tolerance for the kerb/sidewalk edge
       if (was !== P.onRoad && P.speed > 5) {
         Z.audio.bump(); P.shake = Math.min(1, P.speed / 25);
         Z.missions && Z.missions.jolt(1.2 + P.speed * 0.08, 'kerb');
