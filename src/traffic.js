@@ -156,7 +156,7 @@
   function endTurn(c) {
     var T = c.turn;
     c.e = T.e2; c.dir = T.dir2; c.s = T.s2; c.lane = T.lane2; c.lat = M.laneLat(c.e, c.lane); c.mode = 0; c.turn = null;
-    releaseOcc(c); c.permit = null;
+    releaseOcc(c); c.permit = null; c.ghost = false;
     chooseNext(c);
   }
 
@@ -206,7 +206,8 @@
     }
     // exit space: don't block the junction
     var list = byEdge.get(c.next.e.i * 2 + (c.next.dir > 0 ? 0 : 1));
-    if (list) for (k = 0; k < list.length; k++) if (list[k].s < M.clrStart(c.next.e, c.next.dir) + list[k].len + 2 && list[k].v < 2 && list[k].mode === 0) return false;
+    var need = M.clrStart(c.next.e, c.next.dir) + c.len + 3;
+    if (list) for (k = 0; k < list.length; k++) { var q = list[k]; if (q.mode === 0 && q.v < 2 && q.s - q.len / 2 < need) return false; }
     return true;
   }
   function distToStop(c) { return c.e.len - M.clrEnd(c.e, c.dir) - c.s; }
@@ -368,7 +369,10 @@
     // geometric check (turning cars, other edges, the ambulance)
     // (only cars inside junctions, or on our target edge while we turn; cars waiting at
     // other stop lines are never in our way and would otherwise cause gridlock)
-    forNear(c.x + hx * 12, c.y + hy * 12, 16, function (o) {
+    if (c.mode === 1 && c.v < 0.2) c.stuckT = (c.stuckT || 0) + dt; else c.stuckT = 0;
+    if (c.stuckT > 6) c.ghost = true; // last-resort anti-gridlock: squeeze through (until the turn ends)
+    var ghost = c.mode === 1 && c.ghost;
+    if (!ghost) forNear(c.x + hx * 12, c.y + hy * 12, 16, function (o) {
       if (o === c) return;
       if (o.mode === 0) { if (c.mode === 0 || o.e !== c.turn.e2 || o.dir !== c.turn.dir2) return; }
       var rx = o.x - c.x, ry = o.y - c.y, f = rx * hx + ry * hy; if (f <= 0) return;
