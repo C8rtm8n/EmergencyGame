@@ -61,26 +61,31 @@
     var probe = document.getElementById('safe');
     var cs = getComputedStyle(probe);
     G.safe = { l: parseFloat(cs.paddingLeft) || 0, r: parseFloat(cs.paddingRight) || 0, t: parseFloat(cs.paddingTop) || 0, b: parseFloat(cs.paddingBottom) || 0 };
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var w = vw, h = vw * 9 / 16;
-    if (h > vh) { h = vh; w = vh * 16 / 9; }
+    var vw = window.innerWidth, vh = window.innerHeight, touch = Z.input.isTouchDevice();
+    // desktop: 16:9 letterbox; phones/tablets: fill the whole screen (no black bars)
+    var w = vw, h = vh;
+    if (!touch) { h = vw * 9 / 16; if (h > vh) { h = vh; w = vh * 16 / 9; } }
     stage.style.width = Math.floor(w) + 'px'; stage.style.height = Math.floor(h) + 'px';
     stage.style.left = Math.floor((vw - w) / 2) + 'px'; stage.style.top = Math.floor((vh - h) / 2) + 'px';
     // insets only matter where the stage touches the screen edge
     G.safe = { l: (vw - w) / 2 < G.safe.l ? G.safe.l : 0, r: (vw - w) / 2 < G.safe.r ? G.safe.r : 0, t: (vh - h) / 2 < G.safe.t ? G.safe.t : 0, b: (vh - h) / 2 < G.safe.b ? G.safe.b : 0 };
-    var dpr = Math.min(window.devicePixelRatio || 1, Z.input.isTouchDevice() ? 1.5 : 2) * (G.quality || 1);
-    var cw = Math.max(640, Math.min(1920, Math.round(w * dpr))), ch = Math.round(cw * 9 / 16);
-    var s = cw / 1280;
+    var dpr = Math.min(window.devicePixelRatio || 1, touch ? 1.5 : 2) * (G.quality || 1);
+    var k = Math.min(1, 1920 / (w * dpr), 1920 / (h * dpr));
+    var cw = Math.round(w * dpr * k), ch = Math.round(h * dpr * k);
+    // UI and world scale follow the screen HEIGHT, and are enlarged on small touch screens
+    var boost = touch ? Z.clamp(560 / h, 1, 1.6) : 1;
+    var s = ch / 720 * (touch ? 1.15 * Math.sqrt(boost) : 1); // world zoom
+    G.hudScale = Math.min(ch / 720 * (touch ? 1.15 * boost : 1), cw / 1060); // HUD needs ~1060 units of width
     Z.render.resize(cw, ch, s);
     G.scale = s; G.cssScale = cw / w;
-    document.documentElement.style.setProperty('--ui', (w / 1280).toFixed(3));
+    document.documentElement.style.setProperty('--ui', Math.min(h / 720 * (touch ? 1.15 * boost : 1), w / 1150).toFixed(3));
     stage.style.setProperty('--sl', G.safe.l + 'px'); stage.style.setProperty('--sr', G.safe.r + 'px'); stage.style.setProperty('--sb', G.safe.b + 'px'); stage.style.setProperty('--st', G.safe.t + 'px');
     if (Z.tiles.setRes) Z.tiles.setRes(Z.CONFIG.zoomNear * s);
     document.getElementById('rotate-t').textContent = Z.t('rotate');
     document.title = Z.t('title') + ': ' + Z.t('subtitle');
     document.body.classList.toggle('portrait', vh > vw && Z.input.isTouchDevice());
     // safe insets are CSS px; HUD works in canvas px / scale
-    G.safe = { l: G.safe.l * G.cssScale / s, r: G.safe.r * G.cssScale / s, t: G.safe.t * G.cssScale / s, b: G.safe.b * G.cssScale / s };
+    var hs = G.hudScale; G.safe = { l: G.safe.l * G.cssScale / hs, r: G.safe.r * G.cssScale / hs, t: G.safe.t * G.cssScale / hs, b: G.safe.b * G.cssScale / hs };
   }
 
   function onPointer(e) {
@@ -274,7 +279,7 @@
     };
     Z.render.frame(st);
     var g = cv.getContext('2d');
-    if (playing) Z.hud.draw(g, cv.width, cv.height, G.scale, st);
+    if (playing) Z.hud.draw(g, cv.width, cv.height, G.hudScale || G.scale, st);
     if (Z.CONFIG.debug) { g.fillStyle = '#0f0'; g.font = '14px monospace'; g.textAlign = 'left'; g.fillText(Math.round(fps) + ' fps  cars ' + Z.traffic.cars.length, 10, cv.height - 10); }
   }
 })();

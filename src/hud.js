@@ -82,7 +82,7 @@
     if (st.target) edgeArrow(g, W, H0, s, st.target);
     // ---- speed + siren state (bottom centre-left)
     var kmh = Math.round(P.speed * 3.6);
-    var sx = Z.input.touch ? W / 2 : L + 80 * s, sy = B - 30 * s;
+    var sx = Z.input.isTouchDevice() ? W / 2 : L + 80 * s, sy = B - 30 * s;
     pill(g, sx - 70 * s, sy - 24 * s, 140 * s, 48 * s);
     txt(g, kmh, sx - 8 * s, sy, 28 * s, '#fff', 'right');
     txt(g, 'km/h', sx - 2 * s, sy + 4 * s, 13 * s, '#bcd', 'left', 600);
