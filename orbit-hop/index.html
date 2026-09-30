@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#05060f">
 <title>Orbit Hop</title>
-<!-- CrazyGames SDK v3 (jediná externí závislost; hra funguje i bez něj) -->
+<!-- CrazyGames SDK v3 (the only external dependency; the game also runs without it) -->
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 <style>
   :root {
@@ -126,6 +126,19 @@
     color: #fff;
     text-shadow: 0 0 10px var(--cyan), 0 0 26px var(--cyan);
   }
+  .reason {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ff8a7a;
+    text-shadow: 0 0 8px rgba(255, 90, 60, 0.6);
+  }
+  .stats {
+    display: flex;
+    gap: 18px;
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .stats b { display: block; font-size: 20px; color: #fff; }
   .record {
     font-weight: 900;
     font-size: 18px;
@@ -186,37 +199,43 @@
 
 <!-- HUD: pauza + zvuk -->
 <div id="hud">
-  <button id="btnPause" class="icon-btn hidden" aria-label="Pauza" title="Pauza (P / Esc)">
+  <button id="btnPause" class="icon-btn hidden">
     <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
   </button>
-  <button id="btnSound" class="icon-btn" aria-label="Zvuk" title="Zvuk (M)"></button>
+  <button id="btnSound" class="icon-btn"></button>
 </div>
 
-<!-- Úvodní obrazovka -->
+<!-- Úvodní obrazovka (texty doplní i18n) -->
 <div id="menu" class="overlay">
   <div class="title">ORBIT <span>HOP</span></div>
-  <div class="subtitle blink">Klikni pro start</div>
+  <div class="subtitle blink" data-i18n="start"></div>
   <div class="best-line" id="menuBest"></div>
-  <div class="hint">Klik, mezerník nebo tap = odlet z oběžné dráhy.<br>Chyť se další planety a nevyleť z obrazovky!</div>
+  <div class="hint"><span data-i18n="hint1"></span><br><span data-i18n="hint2"></span></div>
 </div>
 
 <!-- Pauza -->
 <div id="pause" class="overlay hidden">
   <div class="panel">
-    <h2>PAUZA</h2>
-    <button id="btnResume" class="btn">Pokračovat</button>
+    <h2 data-i18n="paused"></h2>
+    <button id="btnResume" class="btn" data-i18n="resume"></button>
   </div>
 </div>
 
 <!-- Konec hry -->
 <div id="gameover" class="overlay hidden">
   <div class="panel">
-    <h2>KONEC HRY</h2>
-    <div class="label">Skóre</div>
+    <h2 data-i18n="gameOver"></h2>
+    <div class="reason" id="goReason"></div>
+    <div class="label" data-i18n="score"></div>
     <div class="big" id="goScore">0</div>
-    <div class="record hidden" id="goRecord">NOVÝ REKORD!</div>
+    <div class="record hidden" id="goRecord" data-i18n="newBest"></div>
     <div class="best-line" id="goBest"></div>
-    <button id="btnRestart" class="btn">Hrát znovu</button>
+    <div class="stats">
+      <div><b id="goPlanets">0</b><span data-i18n="planets"></span></div>
+      <div><b id="goStars">0</b><span data-i18n="stars"></span></div>
+      <div><b id="goCombo">x1</b><span data-i18n="maxCombo"></span></div>
+    </div>
+    <button id="btnRestart" class="btn" data-i18n="playAgain"></button>
   </div>
 </div>
 
@@ -260,12 +279,113 @@ const RGB_ORANGE = hexToRgb('#ff7a3a');
 /** Exponenciální vyhlazení nezávislé na FPS. */
 const smooth = (rate, dt) => 1 - Math.exp(-rate * dt);
 
+const IS_TOUCH = (() => {
+  try { return window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; }
+})();
+
+/** Krátká vibrace na mobilu (pokud je podporovaná). */
+function vibrate(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* ignorovat */ }
+}
+
 
 /* =====================================================================
- * 2. ÚLOŽIŠTĚ (localStorage v try/catch – může být zakázané)
+ * 1b. LOKALIZACE – výchozí angličtina, čeština podle locale z CrazyGames SDK
+ *     (nebo ?lang=cs pro lokální testování)
+ * ===================================================================== */
+const I18N = {
+  en: {
+    start: IS_TOUCH ? 'Tap to start' : 'Click to start',
+    hint1: IS_TOUCH ? 'Tap to leave your orbit.' : 'Click, Space or tap to leave your orbit.',
+    hint2: 'Catch the next planet and don’t drift off screen!',
+    bestScore: (n) => `Best score: ${n}`,
+    best: (n) => `Best: ${n}`,
+    paused: 'PAUSED',
+    resume: 'Resume',
+    gameOver: 'GAME OVER',
+    score: 'Score',
+    newBest: 'NEW BEST!',
+    playAgain: 'Play again',
+    planets: 'planets',
+    stars: 'stars',
+    maxCombo: 'max combo',
+    launchHint: IS_TOUCH ? 'Tap to launch!' : 'Click or press Space to launch!',
+    combo: (n) => `COMBO x${n}`,
+    pause: 'Pause (P / Esc)',
+    soundOn: 'Mute (M)',
+    soundOff: 'Unmute (M)',
+    reason_side: 'You drifted off course',
+    reason_bottom: 'You fell out of view',
+    reason_lost: 'Lost in deep space',
+    reason_asteroid: 'Hit by an asteroid',
+  },
+  cs: {
+    start: IS_TOUCH ? 'Tapni pro start' : 'Klikni pro start',
+    hint1: IS_TOUCH ? 'Tapnutím opustíš oběžnou dráhu.' : 'Klik, mezerník nebo tap = odlet z oběžné dráhy.',
+    hint2: 'Chyť se další planety a nevyleť z obrazovky!',
+    bestScore: (n) => `Nejlepší skóre: ${n}`,
+    best: (n) => `Nejlepší: ${n}`,
+    paused: 'PAUZA',
+    resume: 'Pokračovat',
+    gameOver: 'KONEC HRY',
+    score: 'Skóre',
+    newBest: 'NOVÝ REKORD!',
+    playAgain: 'Hrát znovu',
+    planets: 'planet',
+    stars: 'hvězd',
+    maxCombo: 'max. kombo',
+    launchHint: IS_TOUCH ? 'Tapni pro odlet!' : 'Klikni nebo zmáčkni mezerník!',
+    combo: (n) => `KOMBO x${n}`,
+    pause: 'Pauza (P / Esc)',
+    soundOn: 'Ztlumit (M)',
+    soundOff: 'Zapnout zvuk (M)',
+    reason_side: 'Vyletěl jsi z dráhy',
+    reason_bottom: 'Spadl jsi mimo obrazovku',
+    reason_lost: 'Ztracen v hlubokém vesmíru',
+    reason_asteroid: 'Srážka s asteroidem',
+  },
+};
+
+let LANG = 'en';
+const URL_LANG = (() => {
+  try { return new URLSearchParams(window.location.search).get('lang'); } catch (e) { return null; }
+})();
+
+/** Přeložený text; funkce v tabulce dostanou argumenty (např. skóre). */
+function t(key, ...args) {
+  const s = I18N[LANG][key] !== undefined ? I18N[LANG][key] : I18N.en[key];
+  return typeof s === 'function' ? s(...args) : s;
+}
+
+/** Nastaví jazyk podle kódu locale ("cs-CZ" → čeština, cokoliv jiného → angličtina). */
+function setLanguage(code) {
+  LANG = code && String(code).toLowerCase().startsWith('cs') ? 'cs' : 'en';
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  const bp = document.getElementById('btnPause');
+  bp.title = t('pause');
+  bp.setAttribute('aria-label', t('pause'));
+  if (typeof UI !== 'undefined') {
+    UI.updateSoundIcon();
+    UI.updateMenuBest();
+  }
+}
+
+
+/* =====================================================================
+ * 2. ÚLOŽIŠTĚ – CrazyGames SDK data modul (cloud pro přihlášené hráče),
+ *    jinak localStorage; vše v try/catch (úložiště může být zakázané)
  * ===================================================================== */
 const Store = {
+  cloud: null,   // SDK.data po inicializaci SDK
+
   get(key, fallback) {
+    try {
+      if (this.cloud) {
+        const v = this.cloud.getItem(key);
+        if (v !== null && v !== undefined) return v;
+      }
+    } catch (e) { /* ignorovat */ }
     try {
       const v = window.localStorage.getItem(key);
       return v === null ? fallback : v;
@@ -274,6 +394,7 @@ const Store = {
     }
   },
   set(key, value) {
+    try { if (this.cloud) this.cloud.setItem(key, String(value)); } catch (e) { /* ignorovat */ }
     try { window.localStorage.setItem(key, String(value)); } catch (e) { /* ignorovat */ }
   },
 };
@@ -307,6 +428,7 @@ const Sound = {
         this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
         const d = this.noiseBuf.getChannelData(0);
         for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        this.startMusic();
       }
       if (this.ctx.state === 'suspended' && !document.hidden) this.ctx.resume();
     } catch (e) { /* audio není dostupné */ }
@@ -387,6 +509,89 @@ const Sound = {
   click() {
     this.tone(700, 900, 0.05, 'sine', 0.1);
   },
+  newBest() {
+    [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, f, 0.14, 'triangle', 0.14, i * 0.08));
+  },
+
+  /* ---------- Procedurální hudba (arpeggio + bas, Am–F–C–G) ----------
+   * Plánovač s předstihem: každých 100 ms naplánuje noty na dalších 300 ms. */
+  musicTimer: null,
+  musicBus: null,
+  nextNote: 0,
+  step: 0,
+  CHORDS: [
+    { bass: 45, notes: [57, 60, 64, 69] },   // Am
+    { bass: 41, notes: [53, 57, 60, 65] },   // F
+    { bass: 48, notes: [55, 60, 64, 67] },   // C
+    { bass: 43, notes: [55, 59, 62, 67] },   // G
+  ],
+  ARP: [0, 1, 2, 3, 2, 1, 2, 3],
+
+  startMusic() {
+    if (!this.ctx || this.musicTimer) return;
+    this.musicBus = this.ctx.createGain();
+    this.musicBus.gain.value = 0.55;
+    this.musicBus.connect(this.master);
+    this.nextNote = this.ctx.currentTime + 0.1;
+    this.musicTimer = setInterval(() => this.scheduleMusic(), 100);
+  },
+
+  scheduleMusic() {
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    const active = !G.adActive && G.state !== 'paused';
+    const now = this.ctx.currentTime;
+    // Po pauze nepřehrávat zameškané noty najednou
+    if (this.nextNote < now) this.nextNote = now + 0.05;
+    if (!active || this.isMuted()) {
+      this.nextNote = now + 0.1;
+      return;
+    }
+    const beat = 0.25;   // osmina při 120 BPM
+    while (this.nextNote < now + 0.3) {
+      const chord = this.CHORDS[Math.floor(this.step / 8) % this.CHORDS.length];
+      const i = this.step % 8;
+      const midiF = (m) => 440 * Math.pow(2, (m - 69) / 12);
+      // arpeggio
+      const f = midiF(chord.notes[this.ARP[i]] + 12);
+      this.musicNote(f, beat * 0.9, 'triangle', 0.045, this.nextNote);
+      // bas na 1. a 5. osmině
+      if (i === 0 || i === 4) this.musicNote(midiF(chord.bass), beat * 1.8, 'sine', 0.11, this.nextNote);
+      // během hry jemný hi-hat na doby, s kombem výraznější
+      if (G.state === 'playing' && i % 2 === 1) this.musicHat(this.nextNote, 0.02 + Math.min(G.combo, 4) * 0.008);
+      this.nextNote += beat;
+      this.step++;
+    }
+  },
+
+  musicNote(f, dur, type, vol, t) {
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type;
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g);
+    g.connect(this.musicBus);
+    o.start(t);
+    o.stop(t + dur + 0.03);
+  },
+
+  musicHat(t, vol) {
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'highpass';
+    f.frequency.value = 7000;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+    src.connect(f);
+    f.connect(g);
+    g.connect(this.musicBus);
+    src.start(t, Math.random() * 0.5);
+    src.stop(t + 0.05);
+  },
 };
 
 
@@ -405,6 +610,21 @@ const CG = {
         this.sdk = window.CrazyGames.SDK;
         this.ready = this.sdk.environment !== 'disabled';
         if (!this.ready) return;
+        // Jazyk podle locale hráče (fallback angličtina)
+        try {
+          const info = this.sdk.user && this.sdk.user.systemInfo;
+          if (!URL_LANG && info && info.locale) setLanguage(info.locale);
+        } catch (e) { /* ignorovat */ }
+        // Cloudové ukládání (synchronizuje rekord pro přihlášené hráče)
+        try {
+          if (this.sdk.data) {
+            Store.cloud = this.sdk.data;
+            const cloudBest = parseInt(Store.get(CFG.STORAGE_BEST, '0'), 10) || 0;
+            if (cloudBest > G.best) G.best = cloudBest;
+            else if (G.best > cloudBest) Store.set(CFG.STORAGE_BEST, G.best);
+            UI.updateMenuBest();
+          }
+        } catch (e) { /* ignorovat */ }
         // Respektovat nastavení zvuku z platformy
         try {
           const s = this.sdk.game.settings;
@@ -500,6 +720,10 @@ const G = {
   quickJump: false,
   newBest: false,
   hasJumped: false,
+  newBestShown: false,         // hláška "NEW BEST!" už během běhu padla
+  starsCollected: 0,
+  maxMult: 1,
+  deathReason: 'lost',
   dyingTimer: 0,
   camY: 0,
   camTarget: 0,
@@ -663,6 +887,9 @@ function resetWorld() {
   G.quickJump = false;
   G.newBest = false;
   G.hasJumped = false;
+  G.newBestShown = false;
+  G.starsCollected = 0;
+  G.maxMult = 1;
   G.shake = 0;
   G.scorePop = 0;
   G.comboShow = 0;
@@ -735,8 +962,9 @@ function capture(p) {
     G.combo = G.quickJump ? Math.min(G.combo + 1, CFG.MAX_MULT - 1) : 0;
     const mult = 1 + G.combo;
     addScore(mult, pl.x, pl.y - 34, mult > 1 ? `+${mult}` : '+1', mult > 1 ? RGB_PINK : RGB_WHITE);
+    G.maxMult = Math.max(G.maxMult, mult);
     if (mult > 1) {
-      addText(pl.x, pl.y - 64, `COMBO x${mult}`, RGB_PINK, 20);
+      addText(pl.x, pl.y - 64, t('combo', mult), RGB_PINK, 20);
       G.comboShow = 1.6;
     }
     G.lastIndex = p.index;
@@ -753,20 +981,31 @@ function addScore(points, x, y, label, rgb) {
   G.score += points;
   G.scorePop = 1;
   addText(x, y, label, rgb, 28);
+  // Překonání rekordu během hry – motivační hláška (jen pokud už nějaký rekord existuje)
+  if (!G.newBestShown && G.best > 0 && G.score > G.best) {
+    G.newBestShown = true;
+    addText(x, y - 64, t('newBest'), RGB_YELLOW, 26);
+    spawnBurst(x, y - 40, RGB_YELLOW, 24, 260, 3, 0.8);
+    Sound.newBest();
+  }
 }
 
 function collectStar(s) {
   s.dead = true;
+  G.starsCollected++;
+  vibrate(15);
   addScore(CFG.STAR_POINTS, s.x, s.y - 26, `+${CFG.STAR_POINTS} ★`, RGB_YELLOW);
   spawnBurst(s.x, s.y, RGB_YELLOW, 26, 280, 3, 0.7);
   G.shake = Math.max(G.shake, 6);
   Sound.star();
 }
 
-function die() {
+function die(reason) {
   if (G.state !== 'playing') return;
   const pl = G.player;
   G.state = 'dying';
+  G.deathReason = reason;
+  vibrate([40, 30, 60]);
   G.dyingTimer = CFG.DYING_TIME;
   CG.gameplayStop();
   UI.showPauseButton(false);
@@ -843,15 +1082,14 @@ function update(dt) {
   // --- Kolize a prohra (jen během hry) ---
   if (playing) {
     if (pl.state === 'fly') {
-      const outSide = Math.abs(pl.x) > boundHalf + 10;
-      const outBottom = pl.y > G.camY + viewH / 2 + 25;
-      const lost = pl.flightTime > CFG.MAX_FLIGHT;
-      if (outSide || outBottom || lost) die();
+      if (Math.abs(pl.x) > boundHalf + 10) die('side');
+      else if (pl.y > G.camY + viewH / 2 + 25) die('bottom');
+      else if (pl.flightTime > CFG.MAX_FLIGHT) die('lost');
     }
     for (const a of G.asteroids) {
       const dx = pl.x - a.x, dy = pl.y - a.y;
       const rr = a.r * 0.85 + 9;
-      if (dx * dx + dy * dy < rr * rr) { die(); break; }
+      if (dx * dx + dy * dy < rr * rr) { die('asteroid'); break; }
     }
     for (const s of G.stars) {
       if (s.dead) continue;
@@ -1016,6 +1254,23 @@ function drawBounds() {
   ctx.moveTo(boundHalf, top); ctx.lineTo(boundHalf, top + h);
   ctx.stroke();
   ctx.setLineDash([]);
+}
+
+/** Červené varování, když letící raketka míří k okraji hrací šachty. */
+function drawEdgeWarning() {
+  const pl = G.player;
+  if (G.state !== 'playing' || pl.state !== 'fly') return;
+  const zone = 110;
+  const k = clamp((Math.abs(pl.x) - (boundHalf - zone)) / zone, 0, 1);
+  if (k <= 0) return;
+  const side = Math.sign(pl.x);
+  const x0 = side * boundHalf;
+  const g = ctx.createLinearGradient(x0, 0, x0 - side * 70, 0);
+  g.addColorStop(0, `rgba(255,60,60,${0.45 * k})`);
+  g.addColorStop(1, 'rgba(255,60,60,0)');
+  ctx.fillStyle = g;
+  const x = side > 0 ? x0 - 70 : x0;
+  ctx.fillRect(x, G.camY - viewH / 2 - 50, 70, viewH + 100);
 }
 
 function drawPlanet(p) {
@@ -1315,14 +1570,14 @@ function drawHUD() {
     const a = 0.75 + 0.25 * Math.sin(G.time * 10) * Math.min(1, G.comboShow);
     ctx.font = `800 ${Math.round(base * 0.36)}px system-ui, -apple-system, "Segoe UI", Arial, sans-serif`;
     ctx.fillStyle = rgba(RGB_PINK, a);
-    ctx.fillText(`COMBO x${G.combo + 1}`, W / 2, top + base * 0.75);
+    ctx.fillText(t('combo', G.combo + 1), W / 2, top + base * 0.75);
   }
 
   // Nápověda na začátku
   if (G.state === 'playing' && !G.hasJumped) {
     ctx.font = `700 ${Math.round(clamp(H * 0.028, 15, 24))}px system-ui, -apple-system, "Segoe UI", Arial, sans-serif`;
     ctx.fillStyle = `rgba(255,228,92,${0.6 + 0.4 * Math.sin(G.time * 5)})`;
-    ctx.fillText('Klikni / tapni pro odlet!', W / 2, H - Math.max(60, H * 0.1));
+    ctx.fillText(t('launchHint'), W / 2, H - Math.max(60, H * 0.1));
   }
 }
 
@@ -1342,6 +1597,7 @@ function render() {
   ctx.translate(0, -G.camY);
 
   drawBounds();
+  drawEdgeWarning();
   const vTop = G.camY - viewH / 2, vBot = G.camY + viewH / 2;
   for (const p of G.planets) {
     if (p.y + p.gravR < vTop || p.y - p.gravR > vBot) continue;
@@ -1373,12 +1629,13 @@ const UI = {
     const b = $('btnSound');
     const off = Sound.userMuted;
     b.innerHTML = off ? ICON_SOUND_OFF : ICON_SOUND_ON;
-    b.setAttribute('aria-label', off ? 'Zapnout zvuk' : 'Ztlumit zvuk');
+    b.title = t(off ? 'soundOff' : 'soundOn');
+    b.setAttribute('aria-label', b.title);
   },
   showPauseButton(v) { $('btnPause').classList.toggle('hidden', !v); },
   show(id, v) { $(id).classList.toggle('hidden', !v); },
   updateMenuBest() {
-    $('menuBest').textContent = G.best > 0 ? `Nejlepší skóre: ${G.best}` : '';
+    $('menuBest').textContent = G.best > 0 ? t('bestScore', G.best) : '';
   },
 };
 
@@ -1420,7 +1677,11 @@ function finishGameOver() {
   }
   const showScreen = () => {
     $('goScore').textContent = G.score;
-    $('goBest').textContent = `Nejlepší: ${G.best}`;
+    $('goBest').textContent = t('best', G.best);
+    $('goReason').textContent = t('reason_' + G.deathReason);
+    $('goPlanets').textContent = G.lastIndex;
+    $('goStars').textContent = G.starsCollected;
+    $('goCombo').textContent = 'x' + G.maxMult;
     UI.show('goRecord', G.newBest);
     UI.show('gameover', true);
     G.overlayReady = true;
@@ -1550,6 +1811,7 @@ function frame(now) {
 (async function boot() {
   resize();
   resetWorld();
+  setLanguage(URL_LANG || 'en');
   UI.updateSoundIcon();
   UI.updateMenuBest();
   requestAnimationFrame((t) => { lastTime = t; frame(t); });
